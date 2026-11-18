@@ -48,7 +48,7 @@ You don't need to install a database. The app uses the SQLite database built int
 **1. Get the code**
 
 ```bash
-git clone https://github.com/<your-username>/oversikt.git
+git clone https://github.com/RustyNick/oversikt.git
 cd oversikt
 ```
 
