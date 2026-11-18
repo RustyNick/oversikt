@@ -1,0 +1,16 @@
+{
+  "name": "oversikt",
+  "version": "1.0.0",
+  "description": "Översikt – Twitch statistics with its own backend (school project, 2026)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "express": "^4.22.3"
+  }
+}
