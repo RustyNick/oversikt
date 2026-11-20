@@ -160,6 +160,7 @@ const S = {
   timelineLoading: {},
   tlShow: { viewers: true, followers: true },
   chartShow: { max: true, avg: true, foll: false, hw: false },
+  saved: [],
   savedShown: SAVED_PAGE,
   focus: null,
   accent: ACCENTS[0],
