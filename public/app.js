@@ -76,7 +76,7 @@ function addDays(d, n) {
 }
 function dow(d) {
   return (d.getDay() + 6) % 7;
-} // Monday = 0
+}
 const TODAY = startOfDay(new Date());
 function hash(str) {
   let h = 2166136261;
@@ -87,7 +87,6 @@ function hash(str) {
   return h >>> 0;
 }
 
-// Turns the backend's rows into what the views use
 function toStreams(rows) {
   return rows
     .map((r) => {
@@ -131,15 +130,15 @@ const ACCENT_NAMES = [
   "Purple",
   "Amber",
 ];
-// day = how several streams on the same day are combined in the chart
+
 const METRICS = [
   { k: "max", label: "Max Viewers", dec: 0, day: (a) => highest(a) },
   { k: "avg", label: "Avg. Viewers", dec: 0, day: (a) => mean(a) },
   { k: "foll", label: "Followers Gained", dec: 0, day: (a) => sum(a) },
   { k: "hw", label: "Hours Watched", dec: 1, day: (a) => sum(a) },
 ];
-const SAVED_PAGE = 5; // saved users shown per "Load more"
-const CATS_SHOWN = 3; // categories shown before "See more"
+const SAVED_PAGE = 5;
+const CATS_SHOWN = 3;
 const S = {
   view: "start",
   user: null,
@@ -160,8 +159,7 @@ const S = {
   timelines: {},
   timelineLoading: {},
   tlShow: { viewers: true, followers: true },
-  chartShow: { max: true, avg: true, foll: false, hw: false }, // figures ticked in the 30 Days and Weekly chart
-  saved: [],
+  chartShow: { max: true, avg: true, foll: false, hw: false },
   savedShown: SAVED_PAGE,
   focus: null,
   accent: ACCENTS[0],
@@ -185,7 +183,6 @@ function store(key, value) {
   }
 }
 
-/* ---- Contrast (WCAG 2.1) ---- */
 function rgb(hex) {
   const n = parseInt(hex.slice(1), 16);
   return [n >> 16, (n >> 8) & 255, n & 255];
@@ -211,7 +208,7 @@ function contrast(a, b) {
     y = luminance(b);
   return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
 }
-// Moves a colour towards white or black in small steps until it has at least `min` contrast against every colour in `against`
+
 function adjust(hex, against, min, toward) {
   const from = rgb(hex),
     to = rgb(toward);
@@ -221,7 +218,7 @@ function adjust(hex, against, min, toward) {
   }
   return toward;
 }
-// Text colour for a background: Onyx or white, whichever has more contrast. Pure black if neither reaches 4.5:1.
+
 function textOn(bg) {
   const best =
     contrast("#101012", bg) >= contrast("#FFFFFF", bg) ? "#101012" : "#FFFFFF";
@@ -234,9 +231,6 @@ function themeColour(name, fallback) {
   return /^#[0-9a-f]{6}$/i.test(v) ? v : fallback;
 }
 
-// The viewer picks the accent. Each mode uses one accent: the chosen colour itself, made only as much
-// darker (light mode) or lighter (dark mode) as needed for 3:1 contrast against the page and the
-// surfaces. Strong colours usually stay exactly as chosen. Text on the accent gets at least 4.5:1.
 function setAccent(hex) {
   S.accent = hex;
   const bg = themeColour("--bg", "#101012"),
@@ -248,8 +242,6 @@ function setAccent(hex) {
   store("oversikt.accent", hex);
 }
 
-// Light or dark mode. theme.js sets it from the system setting before the page is drawn.
-// The page follows the system until the viewer uses the switch.
 const systemDark = window.matchMedia
   ? window.matchMedia("(prefers-color-scheme: dark)")
   : null;
@@ -272,7 +264,7 @@ function esc(s) {
       ],
   );
 }
-const known = (a) => a.filter((v) => v != null); // drop values we have no data for
+const known = (a) => a.filter((v) => v != null);
 function mean(a) {
   a = known(a);
   return a.length ? a.reduce((x, y) => x + y, 0) / a.length : null;
@@ -322,7 +314,6 @@ function hhmm(d) {
     String(d.getMinutes()).padStart(2, "0")
   );
 }
-// Numbers in charts: 1000 and up are written 1k, 1.5k, 2k ...
 function fmtK(v) {
   if (Math.abs(v) < 1000) return String(v);
   return String(Math.round(v / 100) / 10).replace(/\.0$/, "") + "k";
@@ -379,30 +370,37 @@ function initials(name) {
     .filter(Boolean);
   return ((w[0] || "?")[0] + (w[1] ? w[1][0] : "")).toUpperCase();
 }
-// Only pictures from Twitch's image server are shown. A picture that fails to load is removed
-// (see the "error" listener at the bottom), so the letters underneath show instead.
-function picture(url) {
-  return typeof url === "string" &&
-    url.startsWith("https://static-cdn.jtvnw.net/")
-    ? '<img src="' + esc(url) + '" alt="" loading="lazy">'
-    : "";
+
+function picture(url, alt) {
+  if (
+    typeof url !== "string" ||
+    !url.startsWith("https://static-cdn.jtvnw.net/")
+  )
+    return "";
+  return (
+    '<img src="' + esc(url) + '" alt="' + esc(alt || "") + '" loading="lazy">'
+  );
 }
+
 function avatar(u) {
-  const colours = ["#FFE83D", "#7AD7F0", "#F7A8C4", "#B8E986", "#FFB86B"];
+  const colours = ["#FFE83D", "#7AD7F0", "#F7A8C4", "#B8E986", "#FFB86B"],
+    name = u.displayName || u.login;
   return (
     '<span class="avatar" style="background:' +
     colours[hash(u.login) % colours.length] +
-    '" aria-hidden="true">' +
+    '"><span aria-hidden="true">' +
     esc(u.login[0].toUpperCase()) +
-    picture(u.avatar) +
+    "</span>" +
+    picture(u.avatar, "Profile picture of " + name) +
     "</span>"
   );
 }
 function boxart(name, img) {
   return (
-    '<span class="boxart" aria-hidden="true">' +
+    '<span class="boxart"><span aria-hidden="true">' +
     esc(initials(name)) +
-    picture(img) +
+    "</span>" +
+    picture(img, "Cover art for " + name) +
     "</span>"
   );
 }
@@ -492,7 +490,6 @@ function period() {
     };
   }
   if (S.tab === "day" && S.range === "latest") {
-    // The latest single stream on this weekday, compared with the one before it
     const onDay = all.filter((s) => dow(s.date) === S.day),
       latest = onDay[0],
       before = onDay[1];
@@ -533,7 +530,7 @@ function period() {
       vs: "the " + S.range + " " + plural + " before",
     };
   }
-  // 30 days, optionally one category
+
   const from = addDays(TODAY, -29),
     byCat = (s) => S.cat === "all" || s.cat === S.cat;
   const cur = all.filter((s) => inRange(s, from, TODAY) && byCat(s));
@@ -558,12 +555,11 @@ function period() {
   };
 }
 
-// Weekdays (0 = Monday) this user has streamed on, in week order
 function streamedDays() {
   const days = new Set(S.streams.map((s) => dow(s.date)));
   return [0, 1, 2, 3, 4, 5, 6].filter((d) => days.has(d));
 }
-// Which weekday the Day tab opens on: today if they stream today, otherwise the day of their latest stream
+
 function defaultDay() {
   const days = streamedDays();
   if (days.includes(dow(TODAY)) || !S.streams.length) return dow(TODAY);
@@ -611,9 +607,8 @@ function chartSvg(c, metricLabel) {
       '" text-anchor="end">' +
       fmtK(v) +
       "</text>";
-  const every = n <= 12 ? 1 : Math.ceil(n / 6); // about six labels on long axes
+  const every = n <= 12 ? 1 : Math.ceil(n / 6);
   c.labels.forEach((lab, i) => {
-    // the last label on a long axis ends at its point so it isn't cut off
     if ((n - 1 - i) % every === 0)
       g +=
         '<text x="' +
@@ -659,7 +654,7 @@ function chartSvg(c, metricLabel) {
   } else {
     const pts = c.values
       .map((v, i) => (v == null ? null : x(i) + "," + y(v)))
-      .filter(Boolean); // points without data are skipped
+      .filter(Boolean);
     g +=
       '<polyline fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linejoin="round" points="' +
       pts.join(" ") +
@@ -723,7 +718,7 @@ function catBar(cat, img) {
     "</p></div>"
   );
 }
-// Overview: the whole card is a button that opens 30 Days filtered on the category
+
 function catLinkBar(cat, img, i) {
   return (
     '<div class="cat-bar">' +
@@ -752,7 +747,6 @@ function streamCard(s) {
   );
 }
 
-// A row of slides that glides sideways. Moved with the chevrons, the dots or a swipe (see moveCarousel).
 function carousel(id, slides, names) {
   const last = slides.length - 1,
     idx = (S[id] = Math.min(S[id], last));
@@ -833,7 +827,6 @@ function summarySlide(p, title, agg) {
   return "<h2>" + title + '</h2><div class="sum-grid">' + cells + "</div>";
 }
 
-// Three figures for the whole period, shown above the summary and not part of its slides
 function keyFigures(p) {
   const avgDur = mean(p.cur.map((s) => s.dur));
   const fig = (value, label) => "<div><b>" + value + "</b>" + label + "</div>";
@@ -846,7 +839,6 @@ function keyFigures(p) {
   );
 }
 
-// 30 Days: pick a category. The most streamed categories first; the rest behind "See more".
 function categoryFilter() {
   const from = addDays(TODAY, -29),
     counts = new Map(),
@@ -862,7 +854,7 @@ function categoryFilter() {
   );
   const shown = S.catsOpen ? cats : cats.slice(0, CATS_SHOWN);
   if (S.cat !== "all" && cats.includes(S.cat) && !shown.includes(S.cat))
-    shown.push(S.cat); // keep the chosen one visible
+    shown.push(S.cat);
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
   const row = (value, key, name, box, count) =>
     '<button class="cat-opt" data-a="cat" data-v="' +
@@ -932,16 +924,14 @@ function chartHead(caption, label) {
   );
 }
 
-// Latest stream: viewers (line) and new followers per 5 minutes (bars) on one time axis.
-// Hover, tap or use the arrow keys on the chart to read each measurement.
 const BLOCK_MS = 5 * 60 * 1000;
-let TL = null; // the timeline on screen, used by the hover and keyboard handlers
+let TL = null;
 
 function timelineData(tl) {
   const times = tl.map((m) => new Date(m.at).getTime());
   const t0 = times[0],
     t1 = Math.max(times[times.length - 1], t0 + BLOCK_MS);
-  // Followers gained in each 5-minute block: the last count in the block minus the last count before it
+
   const blocks = Math.ceil((t1 - t0) / BLOCK_MS) || 1,
     lastIn = new Array(blocks).fill(null);
   tl.forEach((m, i) => {
@@ -969,11 +959,11 @@ function timelineSvg(d) {
     T = 24,
     B = 30,
     plotW = W - L - R,
-    plotH = H - T - B; // room on the right for the follower scale
+    plotH = H - T - B;
   const xOf = (t) => L + ((t - d.t0) / (d.t1 - d.t0)) * plotW;
   const maxV = Math.max(1, ...d.viewers),
     maxG = Math.max(1, ...d.gained.map((g) => g || 0));
-  // The left axis shows viewers. With only followers ticked it shows followers instead.
+
   const axisMax = show.viewers ? maxV : maxG,
     step = niceStep(axisMax / 4),
     top = step * Math.max(4, Math.ceil(axisMax / step));
@@ -996,7 +986,6 @@ function timelineSvg(d) {
       '" text-anchor="end">' +
       fmtK(v) +
       "</text>";
-  // Only start, middle and end times on the time axis
   [
     [d.t0, "start"],
     [(d.t0 + d.t1) / 2, "middle"],
@@ -1014,11 +1003,9 @@ function timelineSvg(d) {
       "</text>";
   });
   if (show.followers) {
-    // Bars share the space with the viewer line, so they use their own scale and carry their number
     const barTop = show.viewers ? T + plotH * 0.55 : T,
       scale = (v) => (v / (show.viewers ? maxG : top)) * (y(0) - barTop);
     if (both) {
-      // the bars' own scale on the right, so they aren't read against the viewers axis
       [0, maxG].forEach((v) => {
         g +=
           '<text class="tl-axis2" x="' +
@@ -1103,7 +1090,6 @@ function timelineSvg(d) {
       return out;
     },
   };
-  // Text version of the chart for screen readers
   const peak = d.viewers.indexOf(maxV),
     total = d.gained.reduce((a, v) => a + (v || 0), 0);
   const desc =
@@ -1168,11 +1154,14 @@ function timelineBlock(p) {
   );
 }
 
-// Hover, tap and arrow keys work the same on every interactive chart (.tl). The chart that is drawn sets TL:
-// xs = the x position of each point, lines(i) = the text for point i, dotY(i) = where to draw the dot (optional),
-// band = width of the highlighted column (bar charts).
+const PIN_MS = 3000;
+const SETTLE_MS = 150;
+const STILL_PX = 6;
+let tipTimer = null,
+  tipStill = null;
+
 function tlShowAt(wrap, i, announce) {
-  if (!TL) return;
+  if (!TL || TL.pinned) return;
   const n = TL.xs.length;
   i = Math.max(0, Math.min(n - 1, i));
   TL.idx = i;
@@ -1191,9 +1180,15 @@ function tlShowAt(wrap, i, announce) {
     dot.setAttribute("cx", x);
     dot.setAttribute("cy", TL.dotY(i));
   }
-  const lines = TL.lines(i);
-  const tip = wrap.querySelector(".tl-tip");
+  const tip = wrap.querySelector(".tl-tip"),
+    lines = TL.lines(i);
+  if (announce)
+    $("#tlLive").textContent = lines
+      .map((t) => (typeof t === "string" ? t : "Category: " + t.cat))
+      .join(", ");
+  if (!tip.hidden && TL.shown === i) return;
   tip.textContent = "";
+  tip.classList.remove("filling", "pinned");
   lines.forEach((t, k) => {
     if (typeof t === "string") {
       const el = document.createElement(k ? "p" : "b");
@@ -1201,30 +1196,32 @@ function tlShowAt(wrap, i, announce) {
       tip.appendChild(el);
       return;
     }
-    // { cat, img }: category row. Built with DOM methods, so text from Twitch can't become HTML.
+
     const row = document.createElement("p"),
       art = document.createElement("span");
+    const letters = document.createElement("span");
     row.className = "tip-cat";
     art.className = "tip-art";
-    art.setAttribute("aria-hidden", "true");
-    art.textContent = initials(t.cat);
+    letters.setAttribute("aria-hidden", "true");
+    letters.textContent = initials(t.cat);
+    art.appendChild(letters);
     if (
       typeof t.img === "string" &&
       t.img.startsWith("https://static-cdn.jtvnw.net/")
     ) {
       const im = document.createElement("img");
       im.src = t.img;
-      im.alt = "";
+      im.alt = "Cover art for " + t.cat;
       art.appendChild(im);
     }
     row.append(art, document.createTextNode(t.cat));
     tip.appendChild(row);
   });
   tip.hidden = false;
-  const svgBox = wrap.querySelector("svg").getBoundingClientRect(),
+  TL.shown = i;
+  const svgBox = wrap.querySelector(":scope > svg").getBoundingClientRect(),
     wrapBox = wrap.getBoundingClientRect();
-  // The box sits beside the guide line so it doesn't cover the point. On narrow screens, where it doesn't fit
-  // beside the line, it sits just above the chart instead (also out of the way of a finger on a touch screen).
+
   const px = svgBox.left - wrapBox.left + (x / TL.W) * svgBox.width,
     gap = 12,
     tw = tip.offsetWidth,
@@ -1237,53 +1234,172 @@ function tlShowAt(wrap, i, announce) {
   }
   tip.style.left = left + "px";
   tip.style.top = top + "px";
-  if (announce)
-    $("#tlLive").textContent = lines
-      .map((t) => (typeof t === "string" ? t : "Category: " + t.cat))
-      .join(", ");
+  tipRing(tip);
 }
+
+function tipRing(tip) {
+  const NS = "http://www.w3.org/2000/svg",
+    w = tip.offsetWidth,
+    h = tip.offsetHeight,
+    pad = 5;
+  const svg = document.createElementNS(NS, "svg"),
+    rect = document.createElementNS(NS, "rect");
+  svg.setAttribute("class", "tip-ring");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("width", w + pad * 2);
+  svg.setAttribute("height", h + pad * 2);
+  rect.setAttribute("x", 1.5);
+  rect.setAttribute("y", 1.5);
+  rect.setAttribute("width", w + pad * 2 - 3);
+  rect.setAttribute("height", h + pad * 2 - 3);
+  rect.setAttribute("pathLength", "100");
+  svg.appendChild(rect);
+  tip.appendChild(svg);
+}
+
 function tlHide(wrap) {
+  tipReset(wrap);
   const tip = wrap.querySelector(".tl-tip"),
     cursor = wrap.querySelector(".tl-cursor");
-  if (tip) tip.hidden = true;
+  if (tip) {
+    tip.hidden = true;
+    tip.classList.remove("filling", "pinned");
+  }
   if (cursor) cursor.setAttribute("visibility", "hidden");
+  if (TL) {
+    TL.shown = null;
+    TL.pinned = false;
+  }
 }
-function tlFromPointer(wrap, clientX) {
-  const box = wrap.querySelector("svg").getBoundingClientRect(),
+
+function tipReset(wrap) {
+  clearTimeout(tipTimer);
+  tipTimer = null;
+  tipStill = null;
+  const tip = wrap && wrap.querySelector(".tl-tip");
+  if (tip && !(TL && TL.pinned)) tip.classList.remove("filling");
+}
+
+function tipArm(wrap, x, y) {
+  if (!TL || TL.pinned) return;
+  if (tipStill && Math.hypot(x - tipStill.x, y - tipStill.y) <= STILL_PX)
+    return;
+  tipReset(wrap);
+  tipStill = { x, y };
+  tipTimer = setTimeout(() => {
+    const tip = wrap.querySelector(".tl-tip");
+    if (!wrap.isConnected || !tip || tip.hidden) return;
+    tip.classList.add("filling");
+    tipTimer = setTimeout(() => tipPin(wrap), PIN_MS);
+  }, SETTLE_MS);
+}
+function tipPin(wrap) {
+  const tip = wrap.querySelector(".tl-tip");
+  if (!TL || !wrap.isConnected || !tip || tip.hidden) return;
+  TL.pinned = true;
+  tipTimer = null;
+  tip.classList.remove("filling");
+  tip.classList.add("pinned");
+  const close = document.createElement("button");
+  close.type = "button";
+  close.className = "tip-close";
+  close.dataset.a = "tipClose";
+  close.setAttribute("aria-label", "Close info box");
+  close.innerHTML = ICON.close;
+  tip.appendChild(close);
+
+  const wrapW = wrap.getBoundingClientRect().width,
+    left = parseFloat(tip.style.left) || 0;
+  if (left + tip.offsetWidth > wrapW)
+    tip.style.left = Math.max(0, wrapW - tip.offsetWidth) + "px";
+  const old = tip.querySelector(".tip-ring");
+  if (old) old.remove();
+  tipRing(tip);
+}
+
+function tipClose(wrap) {
+  if (!wrap) return;
+  const idx = TL ? TL.idx : null;
+  tlHide(wrap);
+  if (TL) TL.dismissed = idx;
+}
+
+function tlFromPointer(wrap, clientX, clientY, mouse) {
+  if (TL.pinned) return;
+  const box = wrap.querySelector(":scope > svg").getBoundingClientRect(),
     x = ((clientX - box.left) / box.width) * TL.W;
   let best = 0;
   TL.xs.forEach((p, i) => {
     if (Math.abs(p - x) < Math.abs(TL.xs[best] - x)) best = i;
   });
+  if (TL.dismissed === best) return;
+  TL.dismissed = null;
+  if (best !== TL.shown) tipReset(wrap);
   tlShowAt(wrap, best, false);
+  if (mouse) tipArm(wrap, clientX, clientY);
 }
-for (const type of ["pointermove", "pointerdown"]) {
-  document.addEventListener(type, (ev) => {
-    const wrap = ev.target.closest && ev.target.closest(".tl");
-    if (wrap && TL) tlFromPointer(wrap, ev.clientX);
-  });
-}
+document.addEventListener("pointermove", (ev) => {
+  const wrap = ev.target.closest && ev.target.closest(".tl");
+  if (wrap && TL)
+    tlFromPointer(wrap, ev.clientX, ev.clientY, ev.pointerType !== "touch");
+});
+document.addEventListener("pointerdown", (ev) => {
+  const pinned =
+    TL && TL.pinned ? document.querySelector(".tl-tip.pinned") : null;
+  if (pinned) {
+    if (pinned.contains(ev.target)) return;
+    tipClose(pinned.closest(".tl"));
+    if (TL) TL.dismissed = null;
+  }
+  const wrap = ev.target.closest && ev.target.closest(".tl");
+  if (wrap && TL) tlFromPointer(wrap, ev.clientX, ev.clientY, false);
+});
 document.addEventListener(
   "pointerleave",
   (ev) => {
-    if (
-      ev.target.classList &&
-      ev.target.classList.contains("tl") &&
-      document.activeElement !== ev.target
-    )
-      tlHide(ev.target);
+    if (!(ev.target.classList && ev.target.classList.contains("tl"))) return;
+    if (TL && TL.pinned) return;
+    if (TL) TL.dismissed = null;
+    if (document.activeElement !== ev.target) tlHide(ev.target);
+    else tipReset(ev.target);
   },
   true,
 );
+let quietFocus = false;
+function focusQuietly(wrap) {
+  quietFocus = true;
+  wrap.focus({ preventScroll: true });
+  quietFocus = false;
+}
 document.addEventListener("focusin", (ev) => {
-  if (ev.target.classList && ev.target.classList.contains("tl"))
-    tlShowAt(ev.target, TL ? TL.idx : 0, true);
+  if (
+    !(ev.target.classList && ev.target.classList.contains("tl")) ||
+    quietFocus
+  )
+    return;
+  if (TL) TL.dismissed = null;
+  tlShowAt(ev.target, TL ? TL.idx : 0, true);
 });
 document.addEventListener("focusout", (ev) => {
-  if (ev.target.classList && ev.target.classList.contains("tl"))
-    tlHide(ev.target);
+  if (!(ev.target.classList && ev.target.classList.contains("tl"))) return;
+  if (ev.relatedTarget && ev.target.contains(ev.relatedTarget)) return;
+  if (TL && TL.pinned) return;
+  tlHide(ev.target);
 });
 document.addEventListener("keydown", (ev) => {
+  if (ev.key === "Escape" && !S.pickerOpen) {
+    const tip = [...document.querySelectorAll(".tl-tip")].find(
+      (t) => !t.hidden,
+    );
+    if (tip) {
+      ev.preventDefault();
+      const wrap = tip.closest(".tl");
+      const back = tip.contains(document.activeElement);
+      tipClose(wrap);
+      if (back) focusQuietly(wrap);
+      return;
+    }
+  }
   const wrap =
     ev.target.classList && ev.target.classList.contains("tl")
       ? ev.target
@@ -1296,6 +1412,8 @@ document.addEventListener("keydown", (ev) => {
   ];
   if (next === undefined) return;
   ev.preventDefault();
+  if (TL.pinned) tlHide(wrap);
+  TL.dismissed = null;
   tlShowAt(wrap, next, true);
 });
 async function loadTimeline(login, id) {
@@ -1310,7 +1428,6 @@ async function loadTimeline(login, id) {
   if (S.user && S.user.login === login) render();
 }
 
-// 30 Days and Weekly: one chart, a checkbox per figure, bars side by side in a colour per figure
 function figureValue(m, v) {
   return v == null
     ? "–"
@@ -1428,7 +1545,6 @@ function barsSvg(p, shown) {
       const d = p.dates[i],
         title = DAYS[dow(d)] + " " + d.getDate() + " " + shortMonth(d);
       if (!series.some((s) => s.values[i] != null)) return [title, "–"];
-      // The day's categories (with picture) first, then each ticked figure
       const cats = [];
       p.cur.forEach((st) => {
         if (
@@ -1651,7 +1767,7 @@ function subTabs() {
     const days = streamedDays();
     if (!days.length) return "";
     const plural = DAYS_LONG[S.day].toLowerCase() + "s",
-      names = days.length <= 3 ? DAYS_LONG : DAYS; // full names when there is room
+      names = days.length <= 3 ? DAYS_LONG : DAYS;
     return (
       '<div class="tabs">' +
       days
@@ -1718,8 +1834,6 @@ function searchForm() {
   );
 }
 
-// The colour picker is a small dialogue. Every colour is its own Tab stop, Enter or Space picks it,
-// the arrow keys also move between the items, Tab stays inside the picker and Escape closes it.
 function pickerHtml() {
   const idx = ACCENTS.indexOf(S.accent);
   return (
@@ -1874,7 +1988,6 @@ function render() {
     const latest = S.streams.find((x) => dow(x.date) === S.day);
     if (latest) loadTimeline(S.user.login, latest.id);
   }
-  // While the colour picker is open, the rest of the page can't be reached with the keyboard or a screen reader
   for (const el of [$("main"), $("footer"), $(".logo"), $(".theme-btn")])
     el.inert = S.pickerOpen;
   if (keep) {
@@ -1903,10 +2016,6 @@ async function loadSaved() {
   render();
 }
 
-/* ---- Browser history: back/forward buttons and swipe gestures go to where you were ----
-   Opening a user, going to start and switching page tab add a history step.
-   Filters (weekday, range, week, category) update the current step, so the address always
-   matches what you see and a reload or the forward button brings them back. */
 const TABS = ["overview", "30", "weekly", "day"];
 function navState() {
   if (S.view !== "user" || !S.user) return { view: "start" };
@@ -1932,7 +2041,7 @@ function urlFor(st) {
   if (st.tab === "30" && st.cat !== "all") q.set("category", st.cat);
   return location.pathname + "?" + q;
 }
-// The address can be typed or edited by anyone, so every value is checked
+
 function stateFromUrl() {
   const q = new URLSearchParams(location.search),
     login = (q.get("user") || "").toLowerCase();
@@ -1957,7 +2066,7 @@ function remember(push) {
     history.replaceState(
       Object.assign({}, history.state, { scroll: window.scrollY }),
       "",
-    ); // where to scroll back to
+    );
     history.pushState(Object.assign({ scroll: 0 }, st), "", urlFor(st));
   } else {
     history.replaceState(
@@ -1991,7 +2100,7 @@ async function goHome(push) {
   if (push) remember(true);
   await loadSaved();
 }
-// Back/forward: show the step the browser moved to
+
 async function goTo(st) {
   st = st || stateFromUrl();
   if (st.view !== "user") await goHome(false);
@@ -2003,10 +2112,8 @@ async function goTo(st) {
   window.scrollTo(0, st.scroll || 0);
 }
 window.addEventListener("popstate", (ev) => goTo(ev.state));
-if ("scrollRestoration" in history) history.scrollRestoration = "manual"; // we restore the scroll ourselves once the page is drawn
+if ("scrollRestoration" in history) history.scrollRestoration = "manual";
 
-// Search or tap a saved user. A user we have never seen is fetched from Twitch first.
-// nav: tab and filters to show (from the address or history). push: add a history step.
 async function openUser(raw, nav, push = true) {
   const login = String(raw).trim().replace(/^@/, "").toLowerCase();
   if (!/^[a-z0-9_]{4,25}$/.test(login)) {
@@ -2068,7 +2175,6 @@ async function openUser(raw, nav, push = true) {
   render();
 }
 
-// The "Fetch new data" button
 async function fetchNow() {
   if (S.busy) return;
   S.busy = true;
@@ -2108,7 +2214,6 @@ async function setSaved(login, saved) {
   render();
 }
 
-// Slides a carousel to another slide without redrawing the page, so the CSS transition can run
 function moveCarousel(car, to) {
   const id = car.dataset.car,
     slides = car.querySelectorAll(".car-slide");
@@ -2150,7 +2255,7 @@ function buildCsv(rows, sep) {
   ];
   const q = (v) => {
     if (v == null) return "";
-    if (typeof v === "string" && /^[=+\-@\t\r]/.test(v)) v = "'" + v; // text that looks like a formula is kept as plain text
+    if (typeof v === "string" && /^[=+\-@\t\r]/.test(v)) v = "'" + v;
     v = String(v);
     return /[",;\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
   };
@@ -2208,11 +2313,17 @@ document.addEventListener("click", (ev) => {
   if (S.pickerOpen && !ev.target.closest("#picker")) {
     closePicker();
     return;
-  } // click outside closes the picker
+  }
   const el = ev.target.closest("[data-a]");
   if (!el) return;
   const a = el.dataset.a,
     v = el.dataset.v;
+  if (a === "tipClose") {
+    const wrap = el.closest(".tl");
+    tipClose(wrap);
+    if (wrap && ev.detail === 0) focusQuietly(wrap);
+    return;
+  }
   if (a === "home") {
     ev.preventDefault();
     if (S.view !== "start") goHome(true);
@@ -2297,7 +2408,7 @@ document.addEventListener("click", (ev) => {
   } else if (a === "exportToggle") S.exportOpen = !S.exportOpen;
   render();
 });
-// Swipe sideways on a summary or chart
+
 let swipe = null;
 document.addEventListener(
   "touchstart",
@@ -2344,8 +2455,7 @@ document.addEventListener("keydown", (ev) => {
     ArrowUp: -1,
   }[ev.key];
   let next = null;
-  if (step)
-    next = i < 0 ? 0 : (i + step + stops.length) % stops.length; // Tab and arrows go round inside the picker
+  if (step) next = i < 0 ? 0 : (i + step + stops.length) % stops.length;
   else if (ev.key === "Home") next = 0;
   else if (ev.key === "End") next = last;
   if (next === null) return;
@@ -2360,7 +2470,6 @@ if (systemDark)
     }
   });
 
-// A picture that can't be loaded is removed, so the letters underneath show instead
 document.addEventListener(
   "error",
   (ev) => {
